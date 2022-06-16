@@ -1,53 +1,51 @@
 from typing import Optional
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 import uvicorn
-from active_learning_utils.core_AL_utils import get_learner
+from active_learning.core_AL_utils import get_learner
+from server.server_utils import Service, initialize_continuous_mode, initialize_iterations_mode
+from server.active_learning_utils import LearnerParams
 from numpy import array
 from pydantic import BaseModel
 from traceback import print_exc
 
 app = FastAPI()
 
-class LearnerParams(BaseModel):
-  algorithm:str = "rf"
-  x_initial:list = None
-  y_initial:list = None
-  params:Optional[dict] = None
 
 
 @app.get("/")
-async def read_root():
-    return {"Hello": "World"}
+async def home_page():
+    return {"Alpa": "Intelligent labeling. For just a few sats."}}
 
 @app.get("/mirror")
 async def mirror(learner_params:LearnerParams=None):
   return learner_params
 
-@app.get("/initialize")
-async def initialize_model(learner_params:LearnerParams=None):
-  if learner_params is None:
-    return {"Error":"No initialization parameters passed"}
+@app.post("/handshake/{session_type}/{num_iterations}")
+async def hand_shake(session_type: str="continuous",num_iterations:int=None):
+  """ Initial handshake between client and service where they exchange info about  """
+  service = Service()
+  response_dict=None
+  if session_type=="continuous":
+    response_dict = initialize_continuous_mode()
+  elif session_type=="iterations":
+    response_dict = initialize_iterations_mode(num_iterations)
+  else:
+    raise HTTPException(status_code=404, detail="Item not found")
+  return response_dict
 
-
-  if learner_params.x_initial is None or learner_params.y_initial is None:
-    return {"Error":"x_initial and/or y_initial fields are not present in payload"}
-
-  print([list(map(float,i.split(','))) for i in learner_params.x_initial])
+@app.post("/initialize/{session_id}")
+async def initialize(session_id:str=None,learner_params:LearnerParams=None):
   
-  try:
-    x_initial = array([list(map(float,i.split(','))) for i in learner_params.x_initial])
-    y_initial = array([list(map(float,i.split(','))) for i in learner_params.y_initial])
-from replit import db
-    learner = get_learner(x_initial,y_initial,learner_params.algorithm)
+  initilization_dict = {}
+  if session_id is None:
+    raise HTTPException(status_code=404, detail="Item not found")
+  if (learner_params is None or learner_params.x_initial is None or learner_params.y_initial is None or learner_params.preimage is None :
+    raise HTTPException(status_code=400, detail="Pass a JSON containing \"algorithm\", \"x_initial\", \"y_initial\" and \"preimage\" fields.")
+  if session_valid(session_id,learner_params.preimage):
+    initilization_dict = initialize_model(learner_params)
 
-    score = learner.score(x_initial,y_initial)
-
-    return {"score":score}
-    
-  except Exception:
-    print_exc()
-    return {"Error":"Exception occurred"}
+  return initilization_dict
 
   
 if __name__=="__main__":
-  uvicorn.run(app, host="0.0.0.0", port=8000)
+  uvicorn.run(app, host="127.0.0.1", port=8000)
