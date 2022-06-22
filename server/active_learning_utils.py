@@ -65,15 +65,14 @@ def streamed_sampling_iteration(learner:ActiveLearner=None,
 
   Returns: {"classifier_uncertainty":float,"label":"Yes"}
   """
-  label = "Yes" # By default ask for a label
-  uncertainty = 1 # By default high uncertainty
+  label = "label" # By default ask for a label
                                   
   uncertainty = classifier_uncertainty(learner, X_candidate.reshape(1, -1)) 
                                   
-  if classifier_uncertainty > uncertainty_threshold:
-    label = "No"
+  if uncertainty is not None and classifier_uncertainty > uncertainty_threshold:
+    label = "do not label"
 
-  return {"classifier_uncertainty":uncertainty,"label":label}
+  return {"uncertainty":uncertainty,"label":label}
   
 def train_learner_single_sample(learner:ActiveLearner=None,
                                 X_sample:ndarray=None,
@@ -86,9 +85,15 @@ def train_learner_single_sample(learner:ActiveLearner=None,
 
 
 def train_model(train_params:TrainParams=None,session_id:str=None,completed_iterations:int=None):
-  response_dict={}
+  """
+  Train an active learner. Existing active learner trains only on new data.
+  New active learner gets initialized. Session gets updated. 
+  """
+  response_dict = {"message":"Train unsuccessful. Internal error. {} compute iterations completed in this session".format(completed_iterations),\
+    "score":None}
   
   try:
+    #TODO - Check for dimension consistency of inputs and outputs.
     x_train = ndarray([list(map(float,i.split(','))) for i in train_params.x_train])
     y_train = ndarray([list(map(float,i.split(','))) for i in train_params.y_train])
 
@@ -103,6 +108,32 @@ def train_model(train_params:TrainParams=None,session_id:str=None,completed_iter
     remaining_iterations = int(session["completed_iterations"]-session["num_iterations"])
     response_dict = {"message":"Train successful, {} compute iterations completed,\
                       {} iterations remaining".format(session["completed_iterations"],remaining_iterations),"score":score}
+  except Exception as e:
+    print(e)
+  
+  return response_dict
+
+def fetch_label(label_params:LabelParams=None,session_id:str=None,completed_iterations:int=None):
+  """
+  Label an incoming feature vector.
+  """
+  response_dict={"message":"Label unsuccessful. Internal error. You still have {} compute iterations in this session".format(completed_iterations)}
+  try:
+    #TODO - Check for dimension consistency of inputs
+    x_label = ndarray([list(map(float,i.split(','))) for i in train_params.x_label])
+
+    if completed_iterations==0: # Model not trained, need to return error
+      learner = get_learner(x_train,y_train,train_params.algorithm)
+      models[session_id] = learner
+    else: # Fetch learner and teach.
+      learner = models[session_id]
+      label_dict = streamed_sampling_iteration(learner, x_label, 0.5) # TODO make uncertainty threshold a parameter and remove hardcoding.
+      if label_dict:
+        session = update_session(session_id,success=True)
+        remaining_iterations = int(session["completed_iterations"]-session["num_iterations"])
+        response_dict = {"message":"Label iteration successful, {} compute iterations completed,\
+        {} iterations remaining in session.".format(session["completed_iterations"],remaining_iterations),\
+        "decision":label_dict["label"], "uncertainty":label_dict["uncertainty"]}
   except Exception as e:
     print(e)
   
