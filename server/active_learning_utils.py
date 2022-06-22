@@ -6,13 +6,19 @@ from sklearn.ensemble import GradientBoostingClassifier
 from modAL.models import ActiveLearner
 from modAL.uncertainty import classifier_uncertainty
 from server_utils import update_session
+from cached_models import models
 
-class LearnerParams(BaseModel):
+class TrainParams(BaseModel):
   def __init__(self):
     self.algorithm:str = "rf"
-    self.x_initial:list = None
-    self.y_initial:list = None
-    self.preimage: str = None
+    self.x_train:list = None
+    self.y_train:list = None
+    self.params:Optional[dict] = None
+
+class LabelParams(BaseModel):
+  def __init__(self):
+    self.algorithm:str = "rf"
+    self.x_label:list = None
     self.params:Optional[dict] = None
 
 def get_classifier(algo:str="rf",params:dict=None):
@@ -78,16 +84,27 @@ def train_learner_single_sample(learner:ActiveLearner=None,
   learner.teach(X_sample.reshape(1,-1),y_sample.reshape(1,-1))
   return learner
 
-def initialize_model(learner_params:LearnerParams=None):
-    try:
-      x_initial = array([list(map(float,i.split(','))) for i in learner_params.x_initial])
-      y_initial = array([list(map(float,i.split(','))) for i in learner_params.y_initial])
-      learner = get_learner(x_initial,y_initial,learner_params.algorithm)
-      score = learner.score(x_initial,y_initial)
-      session = update_session(session_id,success=True)
-      remaining_iterations = int(session["completed_iterations"]-session["num_iterations"])
-      return {"message":"Initialization_successful, {} iterations remaining".format(remaining_iterations),"score":score} 
-    except Exception:
-      print_exc()
-      raise HTTPException(status_code=500, detail="Internal Server Error. Your session could not be processed. ")
+
+def train_model(train_params:TrainParams=None,session_id:str=None,completed_iterations:int=None):
+  response_dict={}
+  
+  try:
+    x_train = ndarray([list(map(float,i.split(','))) for i in train_params.x_train])
+    y_train = ndarray([list(map(float,i.split(','))) for i in train_params.y_train])
+
+    if completed_iterations==0: # Valid session, not yet started
+      learner = get_learner(x_train,y_train,train_params.algorithm)
+      models[session_id] = learner
+    else: # Fetch learner and teach.
+      learner = models[session_id]
+      learner.teach(x_train,y_train)
+    score = learner.score(x_train,y_train)
+    session = update_session(session_id,success=True)
+    remaining_iterations = int(session["completed_iterations"]-session["num_iterations"])
+    response_dict = {"message":"Train successful, {} compute iterations completed,\
+                      {} iterations remaining".format(session["completed_iterations"],remaining_iterations),"score":score}
+  except Exception as e:
+    print(e)
+  
+  return response_dict
 

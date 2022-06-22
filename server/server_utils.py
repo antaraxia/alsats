@@ -65,6 +65,32 @@ def save_session_info(session_id:str=None,\
 
     db.insert(session_info)
 
+def session_validity_info(session_id:str=None,preimage:str=None)->dict:
+    """ Is a session valid? 
+        Conditions for validity:
+        1. Session ID is not None -- Already checked in function calloing this function
+        2. Invoice preimage is not None -- Already checked in function calling this function
+        3. Session ID exists in the Database
+        4. Invoice preimage corresponds to a valid payment hash for that session ID
+        5. The number of remaining iterations is not zero
+    """
+    session_validity_info={}
+    # Condition 3
+    session = session_db.search(Query().session_id==session_id)
+    session_validity_info["completed_iterations"] = session["completed_iterations"]
+    if not session:
+        session_validity_info["valid_session"] = False
+    # Condition 4
+    service = Service
+    if not service.invoice_paid(preimage): #TODO: need to check session ID for this preimage
+        session_validity_info["valid_session"] = False
+    # Condition 5
+    remaining_iterations = int(session["num_iterations"]-session["completed_iterations"])
+    if remaining_iterations >= 0:
+        session_validity_info["valid_session"] = True
+    
+    return session_validity_info
+    
 def initialize_continuous_mode()->dict:
     
     """ Initializes a fixed price (100 sats) continuous mode session """
@@ -82,11 +108,11 @@ def initialize_continuous_mode()->dict:
         # Fetch payment request that needs to be sent back in returned dict. Also fetch r_hash.
         payment_request = invoice_dict['payment_request']
         r_hash = invoice_dict['r_hash'] 
-
+        start_time=datetime.now().isoformat()
         # Save session info (session_id-->payment_request,r_hash,n_iterations,start_time,proj_end_time) in database
-        save_session_info(session_id,session_type,payment_request,r_hash)
+        save_session_info(session_id,session_type,payment_request,r_hash,start_time=start_time)
         # Return response dict 
-        continuous_mode_dict = {"session_id":session_id,"payment_request":payment_request}
+        continuous_mode_dict = {"session_id":session_id,"payment_request":payment_request, "start_time":start_time}
     except Exception as e:
         print(e)
     
@@ -109,11 +135,11 @@ def initialize_iterations_mode(num_iterations:int=1)->dict:
         # Fetch payment request that needs to be sent back in returned dict. Also fetch r_hash.
         payment_request = invoice_dict['payment_request']
         r_hash = invoice_dict['r_hash'] 
-
+        start_time=datetime.now().isoformat()
         # Save session info (session_id-->payment_request,r_hash,n_iterations,start_time,proj_end_time) in database
-        save_session_info(session_id,session_type,payment_request,r_hash,num_iterations)
+        save_session_info(session_id,session_type,payment_request,r_hash,num_iterations,start_time=start_time)
         # Return response dict 
-        iterations_mode_dict = {"session_id":session_id,"payment_request":payment_request}
+        iterations_mode_dict = {"session_id":session_id,"payment_request":payment_request,"start_time":start_time}
     except Exception as e:
         print(e)
     
@@ -147,7 +173,7 @@ class Service:
             print(r.text)
         return invoice_dict
 
-    def invoice_paid(self,preimage:str):
+    def invoice_paid(self,preimage:str)->bool:
         
         """ Checks if invoice was paid. PreImage is a Base64 encoded string"""
         #1. Decode Base64encoded string to get preimage raw bytes base64.b64decode(<base64 encoded string>)
