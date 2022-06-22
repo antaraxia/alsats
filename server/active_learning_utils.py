@@ -120,12 +120,9 @@ def fetch_label(label_params:LabelParams=None,session_id:str=None,completed_iter
   response_dict={"message":"Label unsuccessful. Internal error. You still have {} compute iterations in this session".format(completed_iterations)}
   try:
     #TODO - Check for dimension consistency of inputs
-    x_label = ndarray([list(map(float,i.split(','))) for i in train_params.x_label])
+    x_label = ndarray([list(map(float,i.split(','))) for i in label_params.x_label])
 
-    if completed_iterations==0: # Model not trained, need to return error
-      learner = get_learner(x_train,y_train,train_params.algorithm)
-      models[session_id] = learner
-    else: # Fetch learner and teach.
+    if completed_iterations>0: # ==> you have a pre-trained model, need to return error
       learner = models[session_id]
       label_dict = streamed_sampling_iteration(learner, x_label, 0.5) # TODO make uncertainty threshold a parameter and remove hardcoding.
       if label_dict:
