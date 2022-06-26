@@ -98,7 +98,7 @@ def initialize_continuous_mode()->dict:
     """ Initializes a fixed price (100 sats) continuous mode session """
     
     continuous_mode_dict = {}
-    service = Service
+    service = Service()
     session_id = get_session_id()
     session_type = "continuous"
     try:
@@ -125,7 +125,7 @@ def initialize_iterations_mode(num_iterations:int=1)->dict:
     """ Initializes a session for a fixed number of AL iterations. Payment per iteration is fixed. """
     
     iterations_mode_dict = {}
-    service = Service
+    service = Service()
     session_id = get_session_id()
     session_type = "iterations"
     try:
@@ -175,6 +175,18 @@ class Service:
             print(r.text)
         return invoice_dict
 
+    def decode_invoice(self,payment_request:str):
+        """ Decode invoice to find details of payment """
+        payreq_dict={}
+        api_endpoint = self.lnd_base_url+'v1/payreq/'+payment_request
+        r =  requests.get(api_endpoint,headers=self.headers,verify = self.tls_cert)
+        if r.status_code==200:
+            payreq_dict=r.json()
+        else:
+            print("Status Code {} returned.".format(r.status_code))
+            print(r.text)
+        return payreq_dict
+         
     def invoice_paid(self,preimage:str)->bool:
         
         """ Checks if invoice was paid. PreImage is a Base64 encoded string"""

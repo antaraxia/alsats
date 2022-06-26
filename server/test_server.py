@@ -74,6 +74,27 @@ def test_session_validity_info():
     assert type(session_valid_dict) == dict
     assert session_valid_dict['valid_session']==True
 
+def test_initialize_iterations():
+    """
+    Tests if a iterations mode session is being initialized correctly or not
+    """
+    num_iterations = 5
+    iterations_mode_dict = initialize_iterations_mode(num_iterations)
+    assert bool(iterations_mode_dict) == True
+    assert type(iterations_mode_dict['session_id'])==str
+    session = get_session_info(iterations_mode_dict['session_id'])
+    #assert type(session) == dict
+    payment_request = session['payment_request']
+    assert type(payment_request) == str
+    service = Service()
+    payreq_dict = service.decode_invoice(payment_request)
+    sats_invoice = int(payreq_dict['num_satoshis'])
+    ref_payment = num_iterations*get_continuous_mode_fixed_payment()
+    assert sats_invoice==ref_payment
+
+
+
+
 
     
     

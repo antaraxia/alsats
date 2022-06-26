@@ -12,7 +12,7 @@ app = FastAPI()
 
 @app.get("/")
 async def home_page():
-  return {"Alpa": "Intelligent labeling. For just a few sats."}
+  return {"ALsats": "Intelligent labeling. For just a few sats."}
 
 @app.post("/pay/initialize/{num_iterations}")
 async def pay_initialize(num_iterations:int=None)->dict:
