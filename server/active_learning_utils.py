@@ -5,8 +5,8 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import GradientBoostingClassifier
 from modAL.models import ActiveLearner
 from modAL.uncertainty import classifier_uncertainty
-from server_utils import update_session
-from cached_models import models
+from .server_utils import update_session
+from .cached_models import models
 
 class TrainParams(BaseModel):
   def __init__(self):

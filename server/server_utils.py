@@ -4,20 +4,33 @@ from hashlib import sha256
 from datetime import datetime
 from numpy.random import randint
 from tinydb import TinyDB, Query
+from tinydb.operations import increment
+#from tinydb_constraint import ConstraintTable
+#TinyDB.table_class = ConstraintTable
+import os
 
 __RANDMAX__=2e7
 __RANDMIN__=-2e7
 
-session_db = TinyDB('session_info.json')
+
+ALSATS_DIR = os.environ.get('ALSATS_DIR','~/lightning/alsats')
+
+session_db = TinyDB(ALSATS_DIR+'/server/session_info.json')
+#session_db.set_schema({'session_id':str,'session_type':str,'payment_request':str,'r_hash':str,'num_iterations':int,'start_time':str,'end_time':str,'completed_iterations':int})
 
 def get_system_params()->dict:
     
     """ Fetches system parameters as a dictionary"""
 
-    f = open("system_params.json","r")
+    f = open(ALSATS_DIR+"/server/system_params.json","r")
     system_params = loads(f.read())
     f.close()
     return system_params
+
+def get_session_info(session_id:str=None)->dict:
+    """ Reads a row corresponding session info from the DB """
+    session = session_db.search(Query().session_id==session_id)
+    return session[0] # should correspond to a single session
 
 def get_session_id()->str:
     
@@ -37,33 +50,21 @@ def get_continuous_mode_fixed_payment()->int:
 def update_session(session_id:str=None,success=False)->dict:
     """ Updates a session and returns the session object """
     session=None
-    if (session_id is not None) and (success==True):
-        session = session_db.search(Query().session_id==session_id)
-        if session:
-            session['completed_iterations']+=1
-    return session
+    if session_id is not None and success==True:
+        session_db.update(increment('completed_iterations'),Query()['session_id']==session_id)
+ 
     
 def save_session_info(session_id:str=None,\
-                        session_type:str="continuous"
+                        session_type:str="continuous",\
                         payment_request:str=None,\
                         r_hash:str=None,\
                         num_iterations:int=1,\
-                        start_time:int=None,\
-                        end_time:int=None,\
+                        start_time:str=None,\
+                        end_time:str=None,\
                         completed_iterations:int=0):
     """ Save a session into DB """
     # TODO: Create session info object and save from there
-    
-    session_info = {'session_id':session_id,\
-                    "session_type":session_type,\
-                    "payment_request":payment_request,\
-                    "r_hash":r_hash,\
-                    "num_iterations":num_iterations,\
-                    "start_time":start_time,\
-                    "end_time":end_time,\
-                    "completed_iterations":completed_iterations}
-
-    db.insert(session_info)
+    session_db.insert({'session_id':session_id,'session_type':session_type,'payment_request':payment_request,'r_hash':r_hash,'num_iterations':num_iterations,'start_time':start_time,'end_time':end_time,'completed_iterations':completed_iterations})
 
 def session_validity_info(session_id:str=None,preimage:str=None)->dict:
     """ Is a session valid? 
@@ -75,19 +76,20 @@ def session_validity_info(session_id:str=None,preimage:str=None)->dict:
         5. The number of remaining iterations is not zero
     """
     session_validity_info={}
+    service = Service()
     # Condition 3
-    session = session_db.search(Query().session_id==session_id)
-    session_validity_info["completed_iterations"] = session["completed_iterations"]
+    session = session_db.search(Query().session_id==session_id)[0]
+    session_validity_info['completed_iterations'] = session['completed_iterations']
     if not session:
-        session_validity_info["valid_session"] = False
+        session_validity_info['valid_session'] = False
     # Condition 4
-    service = Service
-    if not service.invoice_paid(preimage): #TODO: need to check session ID for this preimage
-        session_validity_info["valid_session"] = False
+    elif service.invoice_paid(preimage)==False: #TODO: need to check session ID for this preimage   
+        session_validity_info['valid_session'] = False
     # Condition 5
-    remaining_iterations = int(session["num_iterations"]-session["completed_iterations"])
-    if remaining_iterations >= 0:
-        session_validity_info["valid_session"] = True
+    else:
+        remaining_iterations = int(session['num_iterations']-session['completed_iterations'])
+        if remaining_iterations >= 0:
+            session_validity_info['valid_session'] = True
     
     return session_validity_info
     
@@ -182,7 +184,7 @@ class Service:
         #3. Use payment hash encoded string to lookup the right invoice
         #4. Check if invoice is settled 
         
-        paid = None
+        paid = False
         preimage_bytes= base64.b64decode(preimage)
         payhash_bytes = sha256(preimage_bytes).digest()
         r_hash_str = payhash_bytes.hex()

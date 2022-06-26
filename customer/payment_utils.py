@@ -80,6 +80,7 @@ class Client:
 
 
 if __name__=="__main__":
+    """
     service = Service()
     invoice_dict = service.create_invoice(1000,"First pass of Service Client Code")
     payreq = invoice_dict['payment_request']
@@ -102,5 +103,5 @@ if __name__=="__main__":
     paid = service.invoice_paid(payment_preimage)
     if paid is not None and paid==True:
         print("Invoice is paid")
-
+    """
     
