@@ -52,7 +52,8 @@ def update_session(session_id:str=None,success=False)->dict:
     session=None
     if session_id is not None and success==True:
         session_db.update(increment('completed_iterations'),Query()['session_id']==session_id)
- 
+    session = get_session_info(session_id)
+    return session
     
 def save_session_info(session_id:str=None,\
                         session_type:str="continuous",\

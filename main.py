@@ -56,7 +56,7 @@ async def train(session_id:str=None,train_params:al.TrainParams=None, preimage: 
     raise HTTPException(status_code=400, detail="Pass a JSON containing all following fields:\"x_train\", \"y_train\" ")
   
   session_validity_info = server.get_session_validity_info(session_id,preimage)
-  if session_validity_info["valid_session"]==True:
+  if bool(session_validity_info) and session_validity_info["valid_session"]==True:
     # If model hasn't been initialized, initialize it. Else train.
     response_dict = al.train_model(train_params,session_id,session_validity_info["completed_iterations"])
     if response_dict:
