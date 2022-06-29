@@ -8,8 +8,6 @@ from numpy import array
 
 app = FastAPI()
 
-
-
 @app.get("/")
 async def home_page():
   return {"ALsats": "Intelligent labeling. For just a few sats."}
@@ -19,12 +17,10 @@ async def pay_initialize(num_iterations:int=None)->dict:
   """
   Returns a Lightning payment request that must be fulfilled to initialize a compute session/model.
   """
-  content = headers = {}
   if num_iterations is not None and num_iterations>0:
     iter_dict = server.initialize_iterations_mode(num_iterations)
-    content["session_id"] = iter_dict["session_id"]
-    content["start_time"] = iter_dict["start_time"]
-    headers["payment_request"] = iter_dict["payment_request"]
+    content = {"session_id": iter_dict["session_id"], "start_time":iter_dict["start_time"]}
+    headers = {"payment_request":iter_dict["payment_request"]}
   else:
     raise HTTPException(status_code=400, detail="Must pass num_iterations greater than zero.")
   return JSONResponse(content=content,headers=headers)

@@ -5,6 +5,8 @@ from datetime import datetime
 from numpy.random import randint
 from tinydb import TinyDB, Query
 from tinydb.operations import increment
+from traceback import print_exc
+
 #from tinydb_constraint import ConstraintTable
 #TinyDB.table_class = ConstraintTable
 import os
@@ -144,7 +146,7 @@ def initialize_iterations_mode(num_iterations:int=1)->dict:
         # Return response dict 
         iterations_mode_dict = {"session_id":session_id,"payment_request":payment_request,"start_time":start_time}
     except Exception as e:
-        print(e)
+        print_exc()
     
     return iterations_mode_dict
 
