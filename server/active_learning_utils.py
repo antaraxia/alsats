@@ -99,11 +99,10 @@ def train_model(train_params:TrainParams=None,session_id:str=None,completed_iter
     if completed_iterations==0: # Valid session, not yet started
       learner = get_learner(x_train,y_train,train_params.algorithm)
       models[session_id] = learner
-      session = update_session(session_id,success=False) # don't update completed_iterations on a per sample basis
     else: # Fetch learner and teach.
       learner = models[session_id]
       learner.teach(x_train,y_train)
-      session = update_session(session_id,success=True)
+    session = update_session(session_id,success=True)
     score = learner.score(x_train,y_train)
     remaining_iterations = int(session["completed_iterations"]-session["num_iterations"])
     response_dict = {"message":"Train successful, {} compute iterations completed,\
@@ -129,9 +128,9 @@ def fetch_label(label_params:LabelParams=None,session_id:str=None,completed_iter
       if label_dict:
         session = update_session(session_id,success=True)
         remaining_iterations = int(session["completed_iterations"]-session["num_iterations"])
-        response_dict = {"message":"Label iteration successful, {} compute iterations completed,\
+        response_dict = {"message":"Label successful, {} compute iterations completed,\
         {} iterations remaining in session.".format(session["completed_iterations"],remaining_iterations),\
-        "decision":label_dict["label"], "uncertainty":label_dict["uncertainty"]}
+        "decision":label_dict["label"], "uncertainty":list(label_dict["uncertainty"])}
   except Exception as e:
     print_exc(e)
   

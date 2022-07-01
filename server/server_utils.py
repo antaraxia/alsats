@@ -56,7 +56,33 @@ def update_session(session_id:str=None,success=False)->dict:
         session_db.update(increment('completed_iterations'),Query()['session_id']==session_id)
     session = get_session_info(session_id)
     return session
+
+def is_valid_preimage(preimage:str=None,r_hash:str=None):
+    """
+    Verifies that the preimage produces a valid r_hash.
+    Tries both base64 decoding and hex decoding for preimage.
+    ASsumes that r_hash is hex encoded.
+    """
+    if preimage is None or r_hash is None:
+        return False
+
+    # Check base64 decoding
+    preimage_bytes_b64 = base64.b64decode(preimage)
+    payhash_bytes_b64 = sha256(preimage_bytes_b64).digest()
+    r_hash_str_b64 = payhash_bytes_b64.hex()
+    if r_hash_str_b64 == r_hash:
+        return True
     
+    # Check hex decoding
+    preimage_bytes_hex = bytes.fromhex(preimage)
+    payhash_bytes_hex = sha256(preimage_bytes_hex).digest()
+    r_hash_str_hex = payhash_bytes_hex.hex()
+    if r_hash_str_hex == r_hash:
+        return True
+    
+    return False
+    
+
 def save_session_info(session_id:str=None,\
                         session_type:str="continuous",\
                         payment_request:str=None,\
@@ -69,6 +95,7 @@ def save_session_info(session_id:str=None,\
     # TODO: Create session info object and save from there
     session_db.insert({'session_id':session_id,'session_type':session_type,'payment_request':payment_request,'r_hash':r_hash,'num_iterations':num_iterations,'start_time':start_time,'end_time':end_time,'completed_iterations':completed_iterations})
 
+
 def session_validity_info(session_id:str=None,preimage:str=None)->dict:
     """ Is a session valid? 
         Conditions for validity:
@@ -78,22 +105,23 @@ def session_validity_info(session_id:str=None,preimage:str=None)->dict:
         4. Invoice preimage corresponds to a valid payment hash for that session ID
         5. The number of remaining iterations is not zero
     """
-    session_validity_info={}
+    session_validity_info={"valid_session": False, "completed_iterations" : -1}
     service = Service()
     # Condition 3
-    session = session_db.search(Query().session_id==session_id)[0]
-    session_validity_info['completed_iterations'] = session['completed_iterations']
-    if not session:
-        session_validity_info['valid_session'] = False
-    # Condition 4
-    elif service.invoice_paid(preimage)==False: #TODO: need to check session ID for this preimage   
-        session_validity_info['valid_session'] = False
-    # Condition 5
-    else:
-        remaining_iterations = int(session['num_iterations']-session['completed_iterations'])
-        if remaining_iterations >= 0:
-            session_validity_info['valid_session'] = True
-    
+    try:
+        session = session_db.search(Query().session_id==session_id)
+        if session and type(session)==list:
+            session = session[0] 
+            session_validity_info['completed_iterations'] = session['completed_iterations']
+            # Condition 4
+            #if is_valid_preimage(preimage,session["r_hash"]):
+            if service.invoice_paid(preimage)==True or service.invoice_paid_hex_preim(preimage)==True:
+                remaining_iterations = int(session['num_iterations']-session['completed_iterations'])
+                # Condition 5
+                if remaining_iterations >= 0:
+                    session_validity_info['valid_session'] = True
+    except Exception:
+        print_exc()    
     return session_validity_info
     
 def initialize_continuous_mode()->dict:
@@ -212,7 +240,30 @@ class Service:
         else:
             print("Status Code {} returned.".format(r.status_code))
             print(r.text)
-        return paid            
+        return paid
+
+    def invoice_paid_hex_preim(self,preimage:str)->bool:
+        
+        """ Checks if invoice was paid. PreImage is a hex encoded string"""
+        #1. Decode hex encoded string to get preimage raw bytes
+        #2. sha256 preimage raw bytes to get raw bytes of payment hash sha256(<preimage raw bytes>).digest() 
+        #3. Use payment hash encoded string to lookup the right invoice
+        #4. Check if invoice is settled 
+        
+        paid = False
+        preimage_bytes = bytes.fromhex(preimage)
+        payhash_bytes = sha256(preimage_bytes).digest()
+        r_hash_str = payhash_bytes.hex()
+        api_endpoint = self.lnd_base_url+'v1/invoice/'+r_hash_str
+        r =  requests.get(api_endpoint,headers=self.headers,verify = self.tls_cert)
+        if r.status_code==200:
+            payreq_dict=r.json()
+            if payreq_dict['settled']==True:
+                paid = True
+        else:
+            print("Status Code {} returned.".format(r.status_code))
+            print(r.text)
+        return paid       
 
     def get_wallet_balance(self):
         

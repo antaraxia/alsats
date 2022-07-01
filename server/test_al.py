@@ -83,7 +83,7 @@ def test_train():
         train_params.y_train = y_train
         train_model(train_params,session_id,i+1)
     session = get_session_info(session_id)
-    assert session['completed_iterations']==num_iterations
+    assert session['completed_iterations']==num_iterations+1
     return session
 
 def test_label():
@@ -105,9 +105,9 @@ def test_label():
     assert "Label unsuccessful" in response["message"]
     # test successful labeling by setting completed_iterations = 1
     response = fetch_label(label_params,session_id,1)
-    assert "Label iteration successful" in response["message"]
+    assert "Label successful" in response["message"]
     session = get_session_info(session_id)
-    assert session['completed_iterations']==1 # this needs to be fixed.
+    assert session['completed_iterations']==2 # this needs to be fixed.
     return session
 
 def test_al_loop():
@@ -123,13 +123,13 @@ def test_al_loop():
     session = get_session_info(session_id)
     num_iterations = session['num_iterations']
     i=1
-    while i<=num_iterations+1:
+    while i<=num_iterations:
         # label model
         idx = random.randint(0,len(x))
         x_label = [",".join(map(str,x[idx]))]
         label_params.x_label = x_label
         label_response = fetch_label(label_params,session_id,i)
-        assert "Label iteration successful" in label_response["message"]
+        assert "Label successful" in label_response["message"]
         i+=1
         if label_response["decision"] == "label":
             train_params.x_train = x_label

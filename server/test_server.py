@@ -9,8 +9,8 @@ def test_get_system_params():
     Should privde an additional check for changes made to payment level info.
     """
     system_params = get_system_params()
-    assert system_params['continuous_mode_fixed_payment']==10
-    assert system_params['save_payment']==20
+    assert system_params['continuous_mode_fixed_payment']==1
+    assert system_params['save_payment']==2
 
 def test_get_session_id():
     """
@@ -25,8 +25,8 @@ def test_save_session_info():
     """
     session_id = get_session_id()
     session_type = 'iterations'
-    payment_request = 'ABC***SBCDSRE'
-    r_hash = 'ss2433dS'
+    payment_request = 'lnbcrt100n1p3t063rpp59480ttn26ewxrq8jpep5gdhqvhh0qj86q7kkk6z9zcchunmtwuasdp4ge5hyum5ypcxzumnyphkvgznv4e8v6trv5syxmrfv4h8ggzrdajx2cqzpgsp5s85yep8u79t8mjcnlwh5qfwgj3lagfxmjm949kuewr9y46grevtq9qyyssqd7zt3qa6m8e5hpzlm4d8l7lrq8mhfde99peul4mprsd74ycsalvxrc7v7ezt956jjpx4l3uz0tdzeuzlfegp8dpyzaujthkq6hwpgncpgc4vxh'
+    r_hash = '2d4ef5ae6ad65c6180f20e434436e065eef048fa07ad6b684516317e4f6b773b'
     num_iterations = 5
     start_time = datetime.now().isoformat()
     end_time  = datetime.now().isoformat()
@@ -67,8 +67,8 @@ def test_session_validity_info():
 
     # Create invoice, pay and post preimage
     # Create and pay invoice on alice. take hex encoded r_preimage from lncli listinvoices and paste it here.
-    preimage_hex = 'f088bc132f986e63b78a645d7ad3a882fdad3b3c0c823e4a5be02c2afb24a100'  # Hex encoded payment preimage
-    preimage = base64.b64encode(bytes.fromhex(preimage_hex)).decode("utf-8") # Base64 encoded preimage
+    preimage = '25a5f9fa1d9131af5ab180f51867576c6ad845fcb3f72e65765b4336d1a4de4a'  # Hex encoded payment preimage
+    #preimage = base64.b64encode(bytes.fromhex(preimage_hex)).decode("utf-8") # Base64 encoded preimage
     session = test_save_session_info()
     session_valid_dict = session_validity_info(session['session_id'],preimage)
     assert type(session_valid_dict) == dict
