@@ -1,4 +1,4 @@
-# alsats - active learning for satoshis.
+# alsats - active learning for a few satoshis.
 Label data intelligently using Active Learning. Pay in (mili)sats only for the compute you consume.
 
 alsats reduces the time and cost required to create minimum viable datasets in supervised learning problems.
