@@ -40,10 +40,10 @@ def test_init_model():
     """
     # Create dataset and modify to format suitable for learning
     x,y = test_create_dataset()
-    x_init = [",".join(map(str,x[0])), ",".join(map(str,x[-1]))]
-    y_init = [str(y[0]),str(y[-1])]
-    assert x_init ==["0.0,0.0","10.0,10.0"]
-    assert y_init == ["1","0"]
+    x_init = [x[0], x[-1]]
+    y_init = [y[0],y[-1]]
+    assert x_init ==[[0.0,0.0],[10.0,10.0]]
+    assert y_init == [1,0]
     # Create Train params
     train_params = TrainParams()
     train_params.algorithm = "rf"
@@ -74,8 +74,8 @@ def test_train():
     num_iterations = session['num_iterations']
     for i in range(num_iterations):
         idx = random.randint(0,len(x))
-        x_train = [",".join(map(str,x[idx]))]
-        y_train = [str(y[idx])]
+        x_train = [x[idx]]
+        y_train = y[idx]
         # Create Train params
         train_params = TrainParams()
         train_params.algorithm = "gbc"
@@ -97,7 +97,7 @@ def test_label():
     num_iterations = session['num_iterations']
     # label model
     idx = random.randint(0,len(x))
-    x_label = [",".join(map(str,x[idx]))]
+    x_label = [x[idx]]
     label_params = LabelParams()
     label_params.x_label = x_label
     # test unsuccessful labeling by setting completed_iterations = 0
@@ -126,14 +126,14 @@ def test_al_loop():
     while i<=num_iterations:
         # label model
         idx = random.randint(0,len(x))
-        x_label = [",".join(map(str,x[idx]))]
+        x_label = [x[idx]]
         label_params.x_label = x_label
         label_response = fetch_label(label_params,session_id,i)
         assert "Label successful" in label_response["message"]
         i+=1
         if label_response["decision"] == "label":
             train_params.x_train = x_label
-            train_params.y_train = [str(y[idx])]
+            train_params.y_train = y[idx]
             train_response = train_model(train_params,session_id,i)
             assert "Train successful" in train_response["message"]
             i+=1

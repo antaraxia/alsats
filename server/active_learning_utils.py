@@ -93,8 +93,8 @@ def train_model(train_params:TrainParams=None,session_id:str=None,completed_iter
   
   try:
     #TODO - Check for dimension consistency of inputs and outputs.
-    x_train = array([list(map(float,i.split(','))) for i in train_params.x_train])
-    y_train = array([list(map(float,i.split(','))) for i in train_params.y_train]).ravel()
+    x_train = array(train_params.x_train)
+    y_train = array(train_params.y_train).ravel()
 
     if completed_iterations==0: # Valid session, not yet started
       learner = get_learner(x_train,y_train,train_params.algorithm)
@@ -119,7 +119,7 @@ def fetch_label(label_params:LabelParams=None,session_id:str=None,completed_iter
   response_dict={"message":"Label unsuccessful. Internal error. You still have {} compute iterations in this session".format(completed_iterations)}
   try:
     #TODO - Check for dimension consistency of inputs
-    x_label = array([list(map(float,i.split(','))) for i in label_params.x_label])
+    x_label = array([label_params.x_label])
 
     # Currently labeling is allowed only after training for at least one iteration
     if completed_iterations>0: # ==> you have a pre-trained model, need to return error otherwise
