@@ -293,6 +293,46 @@ class Service:
             print(r.text)
         return available_balance
 
+    def get_channel_local_balance(self):
+        """ Compute net local balance over all incoming channels """
+        total_balance=None
+        api_endpoint = self.lnd_base_url+'v1/balance/channels'
+        r =  requests.get(api_endpoint,headers=self.headers,verify = self.tls_cert)
+        if r.status_code==200:
+            response_dict = r.json()
+            try:
+                if 'local_balance' in response_dict.keys():
+                    total_balance = int(response_dict["local_balance"]["sat"])
+                else:
+                    total_balance = 0
+            except Exception as e:
+                print(e)
+                return None
+        else:
+            print("Status Code {} returned.".format(r.status_code))
+            print(r.text)
+        return total_balance
+
+    def get_channel_remote_balance(self):
+        """ Compute net local balance over all outgoing channels """
+        total_balance=None
+        api_endpoint = self.lnd_base_url+'v1/balance/channels'
+        r =  requests.get(api_endpoint,headers=self.headers,verify = self.tls_cert)
+        if r.status_code==200:
+            response_dict = r.json()
+            try:
+                if 'remote_balance' in response_dict.keys():
+                    total_balance = int(response_dict["remote_balance"]["sat"])
+                else:
+                    total_balance = 0
+            except Exception as e:
+                print(e)
+                return None
+        else:
+            print("Status Code {} returned.".format(r.status_code))
+            print(r.text)
+        return total_balance
+
     def set_pay_thresh_abs(self,threshold:int):
         
         """ Set a threshold for payment of invoices. Amounts above this threshold are not paid """

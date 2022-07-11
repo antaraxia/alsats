@@ -67,7 +67,7 @@ def test_session_validity_info():
 
     # Create invoice, pay and post preimage
     # Create and pay invoice on alice. take hex encoded r_preimage from lncli listinvoices and paste it here.
-    preimage = '25a5f9fa1d9131af5ab180f51867576c6ad845fcb3f72e65765b4336d1a4de4a'  # Hex encoded payment preimage
+    preimage = '310ebdd0717918ef86dd13e765f9e4d75d366ef752925ba73e8248ffb193d68e'  # Hex encoded payment preimage
     #preimage = base64.b64encode(bytes.fromhex(preimage_hex)).decode("utf-8") # Base64 encoded preimage
     session = test_save_session_info()
     session_valid_dict = session_validity_info(session['session_id'],preimage)

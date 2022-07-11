@@ -99,14 +99,20 @@ def train_model(train_params:TrainParams=None,session_id:str=None,completed_iter
     if completed_iterations==0: # Valid session, not yet started
       learner = get_learner(x_train,y_train,train_params.algorithm)
       models[session_id] = learner
+      score=0.0
+      predicted_class=0.0
     else: # Fetch learner and teach.
       learner = models[session_id]
+      score = learner.score(x_train,y_train)
+      predicted_class = float(learner.predict(x_train))
       learner.teach(x_train,y_train)
+      
     session = update_session(session_id,success=True)
-    score = learner.score(x_train,y_train)
     remaining_iterations = int(session["completed_iterations"]-session["num_iterations"])
     response_dict = {"message":"Train successful, {} compute iterations completed,\
-                      {} iterations remaining".format(session["completed_iterations"],remaining_iterations),"score":score}
+                      {} iterations remaining".format(session["completed_iterations"],remaining_iterations),\
+                      "score":score,\
+                      "class":float(predicted_class)}
   except Exception as e:
     print_exc(e)
   

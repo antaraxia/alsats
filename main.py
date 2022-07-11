@@ -18,6 +18,7 @@ async def pay_initialize(num_iterations:int=None)->dict:
   Returns a Lightning payment request that must be fulfilled to initialize a compute session/model.
   """
   if num_iterations is not None and num_iterations>0:
+    print("Requesting session with {} compute iterations...".format(num_iterations))
     iter_dict = server.initialize_iterations_mode(num_iterations)
     content = {"session_id": iter_dict["session_id"], "start_time":iter_dict["start_time"]}
     headers = {"payment_request":iter_dict["payment_request"]}
@@ -38,9 +39,11 @@ async def pay_save():
 async def train(session_id:str=None,train_params:al.TrainParams=None, preimage: Union[str, None] = Header(default=None)):
   """
   Trains an Active Learning model for a valid compute session. Initializes a learner if not initialized.
-  Must be provided with "x_train", "y_train" in the params json as a list of comma separated strings.
-  The strings themselves are features and labels respectively.
-  e.g. "x_train":["1.0,2.0,3.0,4.0","5.0,6.0,7.0,8.0","1.0,2.0,3.0,5.0"] and "y_train":["1","1","0"]
+  Expects a JSON data payload (in the "data" field of the HTTP request).
+  payload = json.dumps({"algorithm":"rf",
+                        "x_train":[[0.0,1.0],[1.0,2.0]],
+                        "y_train":[0,1]
+                        })
   """
   print('Session ID is {}'.format(session_id))
   if session_id is None or bool(session_id.strip())==False:
