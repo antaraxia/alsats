@@ -101,11 +101,14 @@ def train_model(train_params:TrainParams=None,session_id:str=None,completed_iter
     else:
       learner = models[session_id]
     learner.teach(x_train,y_train)
+    predicted_class = learner.predict(x_train)
     session = update_session(session_id,success=True)
     score = learner.score(x_train,y_train)
     remaining_iterations = int(session["num_iterations"]-session["completed_iterations"])
     response_dict = {"message":"Train successful, {} compute iterations completed,\
-                      {} iterations remaining".format(session["completed_iterations"],remaining_iterations),"score":score,"remaining_iterations":[remaining_iterations]}
+                      {} iterations remaining".format(session["completed_iterations"],remaining_iterations),\
+                      "score":score,"remaining_iterations":[remaining_iterations],\
+                      "predicted_label":predicted_class}
   except Exception as e:
     print_exc(e)
   
@@ -123,19 +126,24 @@ def fetch_label(label_params:LabelParams=None,session_id:str=None,completed_iter
     # Currently labeling is allowed only after training for at least one iteration
     if session_id in models.keys(): # ==> you have a pre-trained model, need to return error otherwise
       learner = models[session_id]
+      predicted_class = learner.predict(x_label)
       label_dict = streamed_sampling_iteration(learner, x_label, 0.5) # TODO make uncertainty threshold a parameter and remove hardcoding.
       if label_dict:
         session = update_session(session_id,success=True)
         remaining_iterations = int(session["completed_iterations"]-session["num_iterations"])
         response_dict = {"message":"Label request successful, {} compute iterations completed,\
         {} iterations remaining in session.".format(session["completed_iterations"],remaining_iterations),\
-        "decision":label_dict["label"], "uncertainty":list(label_dict["uncertainty"]),"remaining_iterations":[remaining_iterations]}
+        "decision":label_dict["label"], "uncertainty":list(label_dict["uncertainty"]),\
+        "remaining_iterations":[remaining_iterations],\
+        "predicted_label":predicted_class}
     else:
         session = update_session(session_id,success=True)
         remaining_iterations = int(session["completed_iterations"]-session["num_iterations"])
         response_dict = {"message":"Data point needs labeling, {} compute iterations completed,\
         {} iterations remaining in session.".format(session["completed_iterations"],remaining_iterations),\
-        "decision":"label", "uncertainty":[1.0],"remaining_iterations":[remaining_iterations]}      
+        "decision":"label", "uncertainty":[1.0],\
+        "remaining_iterations":[remaining_iterations],\
+        "predicted_label":"None"}      
   except Exception as e:
     print_exc(e)
   

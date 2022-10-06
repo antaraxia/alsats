@@ -7,7 +7,6 @@ class Client:
         if name is None:
             self.lnd_dir = os.environ['CLIENT_LND_DIR']
             self.name = 'bob'
-            self.name = 'bob'
         else:
             self.lnd_dir = os.environ['LND_ROOT']+name+'/'
             self.name=name
@@ -22,7 +21,6 @@ class Client:
         self.macaroon = codecs.encode(open(self.macaroon_path, 'rb').read(), 'hex')
         self.headers={'Grpc-Metadata-macaroon': self.macaroon}
         self.balance = self.get_wallet_balance()
-        self.local_channel_balance = self.get_channel_local_balance()
         self.local_channel_balance = self.get_channel_local_balance()
         self.pay_threshold = 1000 # Sats by default
     
