@@ -121,7 +121,8 @@ def session_validity_info(session_id:str=None,preimage:str=None)->dict:
                 if remaining_iterations >= 0:
                     session_validity_info['valid_session'] = True
     except Exception:
-        print_exc()    
+        print_exc()
+    print(session_validity_info)    
     return session_validity_info
     
 def initialize_continuous_mode()->dict:
@@ -238,8 +239,7 @@ class Service:
             if payreq_dict['settled']==True:
                 paid = True
         else:
-            print("Status Code {} returned.".format(r.status_code))
-            print(r.text)
+            print("Unable to locate invoice using non-hex preimage. Status Code {} returned.".format(r.status_code))
         return paid
 
     def invoice_paid_hex_preim(self,preimage:str)->bool:

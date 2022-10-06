@@ -90,6 +90,18 @@ async def label(session_id:str=None,label_params:al.LabelParams=None, preimage: 
   else:
     raise HTTPException(status_code=400, detail="Invalid Session. Either the session has no iterations remaining or payment preimage is not valid ")
  
+@app.get("/session_info/{session_id}/{preimage}")
+async def session_validity(session_id:str,preimage:str):
+  """ Returns session info. Valid sessions show completed iterations. """
+  if session_id is None or bool(session_id.strip())==False:
+    raise HTTPException(status_code=400, detail="Need valid session ID field")
+  if preimage is None or bool(preimage.strip())==False:
+    raise HTTPException(status_code=400, detail="Need valid preimage field")
+  session_validity_info = server.session_validity_info(session_id,preimage)
+  if session_validity_info:
+    return JSONResponse(content=session_validity_info,status_code=200)
+  else:
+    raise HTTPException(status_code=400, detail="Invalid Session. Either the session has no iterations remaining or payment preimage is not valid ")
 
 @app.post("/save")
 async def save():
