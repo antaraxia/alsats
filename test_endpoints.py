@@ -47,7 +47,7 @@ def test_train():
     # test if endpoint throws 400 when header and session info don't match anything in the DB
     # but train params have been passed.
     headers = {"preimage":"abcd"}
-    data = dumps({"algorithm":"rf","x_train":[[0.0,2.0,2.0]],"y_train":[1]})
+    data = dumps({"algorithm":"rf","x_train":[[0.0,2.0,2.0]],"y_train":[1.0]})
     response = test_app.post("/train/abcd",headers=headers,data=data)
     assert response.status_code==400
     assert "Invalid Session" in response.json()["detail"]
@@ -76,7 +76,7 @@ def test_train():
     # Continue to train until client session is valid - i.e. for 20 sessions
     for i in range(1,21):
         x = [[random.randint(0,10),random.randint(0,10),random.randint(0,10)]]
-        y = [random.randint(0,1)]
+        y = [random.randint(0.0,1.0)]
         data = dumps({"algorithm":"rf","x_train":x,"y_train":y})
         response = test_app.post("/train/"+session_id,headers=headers,data=data)
         assert response.status_code==200

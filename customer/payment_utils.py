@@ -7,8 +7,10 @@ class Client:
         if name is None:
             self.lnd_dir = os.environ['CLIENT_LND_DIR']
             self.name = 'bob'
+            self.name = 'bob'
         else:
             self.lnd_dir = os.environ['LND_ROOT']+name+'/'
+            self.name=name
             self.name=name
         self.tls_cert = self.lnd_dir+'tls.cert'
         if port is None:
@@ -20,6 +22,7 @@ class Client:
         self.macaroon = codecs.encode(open(self.macaroon_path, 'rb').read(), 'hex')
         self.headers={'Grpc-Metadata-macaroon': self.macaroon}
         self.balance = self.get_wallet_balance()
+        self.local_channel_balance = self.get_channel_local_balance()
         self.local_channel_balance = self.get_channel_local_balance()
         self.pay_threshold = 1000 # Sats by default
     
@@ -91,8 +94,51 @@ class Client:
 
 
 
+    def get_channel_local_balance(self):
+        """ Compute net local balance over all incoming channels """
+        total_balance=None
+        api_endpoint = self.lnd_base_url+'v1/balance/channels'
+        r =  requests.get(api_endpoint,headers=self.headers,verify = self.tls_cert)
+        if r.status_code==200:
+            response_dict = r.json()
+            try:
+                if 'local_balance' in response_dict.keys():
+                    total_balance = int(response_dict["local_balance"]["sat"])
+                else:
+                    total_balance = 0
+            except Exception as e:
+                print(e)
+                return None
+        else:
+            print("Status Code {} returned.".format(r.status_code))
+            print(r.text)
+        return total_balance
+
+    def get_channel_remote_balance(self):
+        """ Compute net local balance over all outgoing channels """
+        total_balance=None
+        api_endpoint = self.lnd_base_url+'v1/balance/channels'
+        r =  requests.get(api_endpoint,headers=self.headers,verify = self.tls_cert)
+        if r.status_code==200:
+            response_dict = r.json()
+            try:
+                if 'remote_balance' in response_dict.keys():
+                    total_balance = int(response_dict["remote_balance"]["sat"])
+                else:
+                    total_balance = 0
+            except Exception as e:
+                print(e)
+                return None
+        else:
+            print("Status Code {} returned.".format(r.status_code))
+            print(r.text)
+        return total_balance
+
+
+
     def get_wallet_balance(self):
         """ Compute Client Balance in Satoshis """
+        available_balance=None
         available_balance=None
         api_endpoint = self.lnd_base_url+'v1/balance/blockchain'
         r =  requests.get(api_endpoint,headers=self.headers,verify = self.tls_cert)

@@ -35,6 +35,8 @@ def streamlit_display():
     """
 
     # Start display
+
+    # Start display
     st.set_page_config(layout='wide')
     st.markdown("""
         <style>
@@ -113,6 +115,38 @@ def streamlit_display():
                 payment_preimage = payment_dict['payment_preimage']
                 print('Payment PreImage -- \n {}'.format(payment_preimage))
 
+                algo_score=[]
+                iterations=[]
+                pred_class=[]
+                ref_class=[]
+                roll_acc=[]
+                if response.status_code==200:
+                    algo_score.append(response.json()["score"])
+                    iterations.append(i)
+                    ref_class.append(int(y_train[0]))
+                    pred_class.append(int(response.json()["class"]))
+                    roll_acc.append(rolling_accuracy(array(pred_class),array(ref_class)))
+                    while i<num_iterations:
+                        idx = random.randint(0,X.shape[0])
+                        # First ask for label
+                        x_label = [list(X[idx])]
+                        headers = {"preimage":payment_preimage}
+                        data = dumps({"algorithm":"rf","x_label":x_label})
+                        response = test_app.post("/label/"+session_id,headers=headers,data=data)
+                        if response.status_code==200:
+                            i+=1
+                            if response.json()["decision"]=="label":
+                                y_train = [int(y[idx])]
+                                x_train = x_label
+                                data = dumps({"algorithm":"rf","x_train":x_train,"y_train":y_train})
+                                response = test_app.post("/train/"+session_id,headers=headers,data=data)
+                                if response.status_code==200:
+                                    i+=1
+                                    algo_score.append(response.json()["score"])
+                                    iterations.append(i)
+                                    ref_class.append(int(y_train[0]))
+                                    pred_class.append(int(response.json()["class"]))
+                                    roll_acc.append(rolling_accuracy(array(pred_class),array(ref_class)))
                 init_idx = random.randint(0,X.shape[0])
                 x_train = [list(X[init_idx])]
                 y_train = [int(y[init_idx])]
