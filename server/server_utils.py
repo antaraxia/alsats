@@ -10,11 +10,12 @@ from traceback import print_exc
 #from tinydb_constraint import ConstraintTable
 #TinyDB.table_class = ConstraintTable
 import os
+from dotenv import load_dotenv
 
 __RANDMAX__=2e7
 __RANDMIN__=-2e7
 
-
+load_dotenv('./envvars.env')
 ALSATS_DIR = os.environ.get('ALSATS_DIR','~/lightning/alsats')
 
 session_db = TinyDB(ALSATS_DIR+'/server/session_info.json')

@@ -101,7 +101,7 @@ def train_model(train_params:TrainParams=None,session_id:str=None,completed_iter
     else:
       learner = models[session_id]
     learner.teach(x_train,y_train)
-    predicted_class = learner.predict(x_train)
+    predicted_class = float(learner.predict(x_train.reshape(1,-1)))
     session = update_session(session_id,success=True)
     score = learner.score(x_train,y_train)
     remaining_iterations = int(session["num_iterations"]-session["completed_iterations"])
@@ -122,11 +122,10 @@ def fetch_label(label_params:LabelParams=None,session_id:str=None,completed_iter
   try:
     #TODO - Check for dimension consistency of inputs
     x_label = array([label_params.x_label])
-
     # Currently labeling is allowed only after training for at least one iteration
     if session_id in models.keys(): # ==> you have a pre-trained model, need to return error otherwise
       learner = models[session_id]
-      predicted_class = learner.predict(x_label)
+      predicted_class = float(learner.predict(x_label.reshape(1,-1)))
       label_dict = streamed_sampling_iteration(learner, x_label, 0.5) # TODO make uncertainty threshold a parameter and remove hardcoding.
       if label_dict:
         session = update_session(session_id,success=True)
@@ -143,7 +142,7 @@ def fetch_label(label_params:LabelParams=None,session_id:str=None,completed_iter
         {} iterations remaining in session.".format(session["completed_iterations"],remaining_iterations),\
         "decision":"label", "uncertainty":[1.0],\
         "remaining_iterations":[remaining_iterations],\
-        "predicted_label":"None"}      
+        "predicted_label":["None"]}      
   except Exception as e:
     print_exc(e)
   
