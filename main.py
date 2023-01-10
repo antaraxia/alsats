@@ -101,17 +101,49 @@ async def session_validity(session_id:str,preimage:str):
   if preimage is None or bool(preimage.strip())==False:
     raise HTTPException(status_code=400, detail="Need valid preimage field")
   session_validity_info = server.session_validity_info(session_id,preimage)
-  if session_validity_info:
+  if session_validity_info and session_validity_info["valid_session"]==True:
     return JSONResponse(content=session_validity_info,status_code=200)
   else:
     raise HTTPException(status_code=400, detail="Invalid Session. Either the session has no iterations remaining or payment preimage is not valid ")
 
-@app.post("/save")
-async def save():
+@app.post("/save/{session_id}/{preimage}")
+async def save(session_id:str,preimage:str):
   """
-  Saves an Active Learning model versus the session ID. 
+  Saves an Active Learning model versus the session ID and preimage for a valid session
   """
-  pass
+  if session_id is None or bool(session_id.strip())==False:
+    raise HTTPException(status_code=400, detail="Need valid session ID field")
+  if preimage is None or bool(preimage.strip())==False:
+    raise HTTPException(status_code=400, detail="Need valid preimage field")
+  session_validity_info = server.session_validity_info(session_id,preimage)
+  if session_validity_info and session_validity_info["valid_session"]==True:
+    save_result = server.save_model(session_id,preimage)
+    if "Exception" in save_result["Status"] or save_result["Status"]==None:
+       raise HTTPException(status_code=500, detail="Internal Server Error. Contact alsats admin.")
+    else:
+      return JSONResponse(content=save_result,status_code=200)
+  else:
+    raise HTTPException(status_code=400, detail="Invalid Session. Either the session has no iterations remaining or payment preimage is not valid ")
+
+@app.get("/download/{session_id}/{preimage}")
+async def download(session_id:str,preimage:str):
+  """
+  Downloads an Active Learning model versus the session ID and preimage for a valid session
+  """
+  if session_id is None or bool(session_id.strip())==False:
+    raise HTTPException(status_code=400, detail="Need valid session ID field")
+  if preimage is None or bool(preimage.strip())==False:
+    raise HTTPException(status_code=400, detail="Need valid preimage field")
+  session_validity_info = server.session_validity_info(session_id,preimage)
+  if session_validity_info and session_validity_info["valid_session"]==True:
+    download_result = server.download_model(session_id,preimage)
+    if "Exception" in download_result["Status"] or download_result["Status"]==None:
+       raise HTTPException(status_code=500, detail="Internal Server Error. Contact alsats admin.")
+    else:
+      return JSONResponse(content=download_result,status_code=200)
+  else:
+    raise HTTPException(status_code=400, detail="Invalid Session. Either the session has no iterations remaining or payment preimage is not valid ")
+
 
 
   

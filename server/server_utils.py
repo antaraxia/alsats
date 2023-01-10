@@ -6,6 +6,9 @@ from numpy.random import randint
 from tinydb import TinyDB, Query
 from tinydb.operations import increment
 from traceback import print_exc
+import boto3
+from .cached_models import models
+import pickle
 
 #from tinydb_constraint import ConstraintTable
 #TinyDB.table_class = ConstraintTable
@@ -16,10 +19,58 @@ __RANDMAX__=2e7
 __RANDMIN__=-2e7
 
 load_dotenv('./envvars.env')
+
 ALSATS_DIR = os.environ.get('ALSATS_DIR','~/lightning/alsats')
+ALSATS_AWS_ACCESS_KEY_ID = os.environ.get("ALSATS_AWS_ACCESS_KEY_ID")
+ALSATS_AWS_SECRET_KEY = os.environ.get("ALSATS_AWS_SECRET_KEY")
 
 session_db = TinyDB(ALSATS_DIR+'/server/session_info.json')
 #session_db.set_schema({'session_id':str,'session_type':str,'payment_request':str,'r_hash':str,'num_iterations':int,'start_time':str,'end_time':str,'completed_iterations':int})
+
+s3_client = boto3.client("s3",aws_access_key_id=ALSATS_AWS_ACCESS_KEY_ID,aws_secret_access_key=ALSATS_AWS_SECRET_KEY)
+
+def model_exists(session_id:str,preimage:str)->bool:
+    """ Check if model exists in S3 """
+    response = s3_client.list_objects(Bucket="alsats-models-test",Prefix="models/"+session_id+"_"+preimage+".pkl")
+    if "Contents" in response.keys():
+        return True
+    return False
+
+def save_model(session_id:str,preimage:str)->dict:
+    """ Save a model in S3"""
+    # 1. Create a folder corresponding to sesssion_id and preimage if it doesn't exist. 
+    # 2. Pickle model and save to s3.
+
+    save_result = {"Status":None}
+    
+    if session_id in models.keys():
+        try:
+            pickled_model = pickle.dumps(models[session_id])
+            s3_client.put_object(Body=pickled_model, Bucket='alsats-models-test', Key="models/"+session_id+"_"+preimage+".pkl")
+            save_result = {"Status": "Success"}
+        except Exception as e:
+            save_result = {"Status":"Failed: Exception -  "+e}
+    else:
+        save_result = {"Status":"Failed: Model not yet created"}
+    
+    return save_result
+
+def download_model(session_id:str,preimage:str)->dict:
+    """ Download model from S3 if it exists """
+    # 1. Check if model has been saved
+    # 2. If not, save model
+    # 3. Once saved, generate presigned URL and return to user
+    download_result = {"Status":"Success"}
+    # If the model doesn't exist on s3 then try saving it first
+    if model_exists(session_id,preimage)==False:
+        save_result = save_model(session_id, preimage)
+        download_result["Status"] = save_result["Status"]
+    # Once we try saving it try downloading it
+    if "Success" in download_result["Status"]:
+        download_result["download_payload"] = s3_client.generate_presigned_url("get_object",\
+            Params={"Bucket": "alsats-models-test","Key": "models/"+session_id+"_"+preimage+".pkl"},ExpiresIn=3600)
+    return download_result
+
 
 def get_system_params()->dict:
     
